@@ -1,0 +1,65 @@
+---
+title: "simulation one"
+author: "Elliot"
+date: "5/19/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+do.one <- function(X, n, equal = T, truth, msm.formula = "trt*w2", msm.family){
+  set.seed(X)
+	dat <- makeData(n = n, equal = equal)
+	fit <- tryCatch({suppressWarnings(mean_tmle(ftime = dat$ftime, ftype = dat$ftype,
+	                           trt = dat$trt, adjustVars = dat$adjustVars,
+	                           glm.trt = "1", t0 = 6,
+	                           glm.ftime = "trt*factor(w2)*w1",
+	                           glm.ctime = "factor(w2)",
+	                           msm.formula = msm.formula,
+	                           msm.family = msm.family))
+		}, error = function(e){ rep(NA, 2*length(truth)) })
+	if(class(fit) == "survtmle"){
+		est <- fit$est
+		se <- sqrt(diag(fit$var))
+		cil <- est - 1.96 * se
+		ciu <- est + 1.96 * se
+		coverage <- truth < ciu & truth > cil
+		bias <- est - truth
+		return(c(bias,coverage))
+	}else{
+		return(fit)
+	}
+}
+
+
+
+```
+
+## R Markdown
+
+
+
+```{r cars}
+
+msm.formula <-  "ftype*trt + trt*w1"
+msm.family <- "poisson"
+truth <- getTruth(msm.formula = msm.formula, msm.family = poisson() )
+truth
+
+cl <- makeCluster(8, type = "SOCK")
+clusterExport(cl, "do.one")
+clusterExport(cl, "makeData")
+clusterExport(cl, "total_hazard")
+clusterEvalQ(cl, devtools::load_all("~/survtmle"))
+
+rep = 1000
+
+rslt_1000 <- parSapplyLB(cl = cl, X = seq_len(size),
+                         FUN = do.one,
+                         n = 1000,
+                         truth = truth, msm.formula = msm.formula, msm.family = msm.family)
+
+```
+
+

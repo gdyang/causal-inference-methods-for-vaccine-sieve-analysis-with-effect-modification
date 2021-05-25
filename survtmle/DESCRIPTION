@@ -1,0 +1,37 @@
+Package: survtmle
+Title: Compute Targeted Minimum Loss-Based Estimates in Right-Censored Survival
+    Settings
+Version: 1.0.2.1
+Authors@R: c(person("David", "Benkeser", role = c("aut", "cre", "cph"),
+                    email = "benkeser@emory.edu"),
+             person("Nima", "Hejazi", role = c("aut"),
+                    email = "nhejazi@berkeley.edu")
+            )
+Description: Targeted estimates of marginal cumulative incidence in survival
+    settings with and without competing risks, including estimators that respect
+    bounds (Benkeser, Carone, and Gilbert. Statistics in Medicine, 2017.
+    <doi:10.1002/sim.7337>).
+Depends:
+    R (>= 3.0.0)
+Imports:
+    SuperLearner,
+    Matrix,
+    plyr,
+    tidyr,
+    stringr,
+    ggplot2,
+    speedglm
+Suggests:
+    testthat,
+    knitr,
+    rmarkdown,
+    survival,
+    cmprsk,
+    tibble
+License: MIT + file LICENSE
+URL: https://github.com/benkeser/survtmle
+BugReports: https://github.com/benkeser/survtmle/issues
+Encoding: UTF-8
+LazyData: true
+VignetteBuilder: knitr
+RoxygenNote: 7.1.1

@@ -1,0 +1,114 @@
+---
+title: "simulation one"
+author: "Elliot"
+date: "5/19/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(parallel)
+library(devtools)
+
+source("Functions/getTVCTruth.R")
+source("Functions/simulateTVCData.R")
+
+load_all("../survtmle")
+
+do_one <- function(X, truth, msm.formula, n, t0){
+  set.seed(X)
+  dat <- makeData(n = n, trttime = c(0,2), t0 = 4, J = 3)
+  fit <-  tryCatch({
+    mean_tmle_T(ftime = dat$ftime, ftype = dat$ftype,
+                trt = dat$trt, adjustVars = dat$adjustVars,
+                t0 = t0,
+                trtOfInterest = data.frame(ftime = c(0,2),
+                                           regimen1 = c(1,1),
+                                           regimen2 = c(0,0)),
+                trtofTime = c(0,2),
+                varofTime = c(0,2),
+                msm.formula =  msm.formula,
+                ftypeOfInterest  = c(1,2,3),
+                glm.trt = list(t0 = "w1_t0 + w2_t0" ,
+                               t2 = "w1_t2 + w2_t2 + trt_t0"),
+                glm.ctime = list(t1 = "w1_t0*w2_t0*trt_t0" ,
+                                 t2 =  "w1_t0*w2_t0*trt_t0",
+                                 t3 =  "w1_t0*w2_t0*trt_t0*w1_t2*w2_t2*trt_t2",
+                                 t4 =  "w1_t0*w2_t0*trt_t0*w1_t2*w2_t2*trt_t2"),
+                glm.ftime = ".^2",
+                msm.family = "binomial",
+                method = "mean")
+    
+  }, error = function(e){ rep(NA, 3*length(truth))})
+  if(class(fit) == "survtmle"){
+    est <- fit$est
+    se <- sqrt(diag(fit$var))
+    cil <- est - 1.96 * se
+    ciu <- est + 1.96 * se
+    coverage <- (truth >= cil & truth <= ciu)
+    bias <- est - truth
+    return(c(bias,coverage))
+  }else{
+    return(fit)
+  }
+}
+
+
+
+```
+
+## R Markdown
+
+
+
+```{r cars}
+
+msm.formula <-  "regimen1*ftime*ftype"
+msm.family <- "binomial"
+
+true_data <-suppressWarnings(truth_MSM_ci(n = 1e5, trttime = c(0,2), t0 = 4, J = 3, 
+               msm.formula = ".",  trtOfInterest = data.frame(ftime = c(0,2),
+                                                                    regimen1 = c(1,1),
+                                                                    regimen2 = c(0,0))))
+fit <- glm(as.formula(paste0("ci ~ ",  msm.formula)), data = true_data, family = msm.family)
+truth <- fit$coefficients
+
+cl <- makeCluster(4, type = "SOCK")
+clusterEvalQ(cl, devtools::load_all("../survtmle"))
+clusterExport(cl, "makeData")
+
+rep = 1000
+
+### results with size 1000
+size = 1000
+
+rslt_1000 <- parSapplyLB(cl = cl, X = seq_len(rep),
+                         FUN = do_one,
+                         n = size,
+                         t0 = c(1:4),
+                         truth = truth, 
+                         msm.formula = msm.formula)
+
+### results with size 2000
+size = 2000
+
+rslt_2000 <- parSapplyLB(cl = cl, X = seq_len(rep),
+                         FUN = do_one,
+                         n = size,
+                         t0 = c(1:4),
+                         truth = truth, 
+                         msm.formula = msm.formula)
+
+### results with size 5000
+size = 5000
+
+rslt_5000 <- parSapplyLB(cl = cl, X = seq_len(rep),
+                         FUN = do_one,
+                         n = size,
+                         t0 = c(1:4),
+                         truth = truth, 
+                         msm.formula = msm.formula)
+
+```
+
+

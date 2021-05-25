@@ -7,6 +7,13 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(parallel)
+library(devtools)
+
+source("Functions/getTruth.R")
+source("Functions/simulatedData.R")
+
+load_all("../survtmle")
 
 do.one <- function(X, n, equal = T, truth, msm.formula = "trt*w2", msm.family){
   set.seed(X)
@@ -44,21 +51,43 @@ do.one <- function(X, n, equal = T, truth, msm.formula = "trt*w2", msm.family){
 
 msm.formula <-  "ftype*trt + trt*w1"
 msm.family <- "poisson"
-truth <- getTruth(msm.formula = msm.formula, msm.family = poisson() )
-truth
+truth <- suppressWarnings(getTruth(msm.formula = msm.formula, msm.family = poisson()))
 
-cl <- makeCluster(8, type = "SOCK")
+
+cl <- makeCluster(4, type = "SOCK")
 clusterExport(cl, "do.one")
 clusterExport(cl, "makeData")
 clusterExport(cl, "total_hazard")
-clusterEvalQ(cl, devtools::load_all("~/survtmle"))
+clusterEvalQ(cl, devtools::load_all("../survtmle"))
 
 rep = 1000
 
-rslt_1000 <- parSapplyLB(cl = cl, X = seq_len(size),
+### results for size 1000
+size = 1000
+
+rslt_1000 <- parSapplyLB(cl = cl, X = seq_len(rep),
                          FUN = do.one,
-                         n = 1000,
-                         truth = truth, msm.formula = msm.formula, msm.family = msm.family)
+                         n = size,
+                         truth = truth, msm.formula = msm.formula,
+                         msm.family = msm.family)
+
+### results for size 2000
+size = 2000
+
+rslt_2000 <- parSapplyLB(cl = cl, X = seq_len(rep),
+                         FUN = do.one,
+                         n = size,
+                         truth = truth, msm.formula = msm.formula,
+                         msm.family = msm.family)
+
+### results for size 5000
+size = 5000
+
+rslt_1000 <- parSapplyLB(cl = cl, X = seq_len(rep),
+                         FUN = do.one,
+                         n = size,
+                         truth = truth, msm.formula = msm.formula,
+                         msm.family = msm.family)
 
 ```
 

@@ -1,3 +1,18 @@
+true_hazard <- function(w1, w2, trt){
+  plogis(-2 + 0.5* w1 + 0.6*w2 - trt)
+}
+
+
+w1_t2_dens <- function(w1, w1_t2){
+  p <- ifelse(w1 ==1, 0.6, 0.4)
+  return( w1_t2*p+(1-w1_t2)*(1 -p))
+}
+
+w2_t2_dens <- function(w2, w2_t2){
+  p <- ifelse(w2 ==1, 0.7, 0.3)
+  return( w2_t2*p+(1-w2_t2)*(1 -p))
+}
+
 
 truth_MSM <- function(n, trttime = c(0,2), t0 = 4, J = 3, 
                       msm.formula = ".",  trtOfInterest){

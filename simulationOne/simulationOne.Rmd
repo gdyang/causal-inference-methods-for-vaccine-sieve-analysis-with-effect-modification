@@ -1,7 +1,5 @@
 ---
 title: "simulation one"
-author: "Elliot"
-date: "5/19/2021"
 output: html_document
 ---
 
@@ -47,14 +45,14 @@ do.one <- function(X, n, equal = T, truth, msm.formula = "trt*w2", msm.family){
 
 
 
-```{r cars}
+```{r sim}
 
 msm.formula <-  "ftype*trt + trt*w1"
 msm.family <- "poisson"
 truth <- suppressWarnings(getTruth(msm.formula = msm.formula, msm.family = poisson()))
 
 
-cl <- makeCluster(4, type = "SOCK")
+cl <- makeCluster(detectCores(), type = "SOCK")
 clusterExport(cl, "do.one")
 clusterExport(cl, "makeData")
 clusterExport(cl, "total_hazard")
@@ -70,6 +68,7 @@ rslt_1000 <- parSapplyLB(cl = cl, X = seq_len(rep),
                          n = size,
                          truth = truth, msm.formula = msm.formula,
                          msm.family = msm.family)
+saveRDS(rslt_1000, file = "size1000/re_n1000.rds")
 
 ### results for size 2000
 size = 2000
@@ -79,16 +78,17 @@ rslt_2000 <- parSapplyLB(cl = cl, X = seq_len(rep),
                          n = size,
                          truth = truth, msm.formula = msm.formula,
                          msm.family = msm.family)
+saveRDS(rslt_2000, file = "size2000/re_n2000.rds")
 
 ### results for size 5000
 size = 5000
 
-rslt_1000 <- parSapplyLB(cl = cl, X = seq_len(rep),
+rslt_5000 <- parSapplyLB(cl = cl, X = seq_len(rep),
                          FUN = do.one,
                          n = size,
                          truth = truth, msm.formula = msm.formula,
                          msm.family = msm.family)
-
+saveRDS(rslt_5000, file = "size5000/re_n5000.rds")
 ```
 
 

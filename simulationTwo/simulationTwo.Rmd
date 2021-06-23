@@ -1,7 +1,5 @@
 ---
-title: "simulation one"
-author: "Elliot"
-date: "5/19/2021"
+title: "simulation two"
 output: html_document
 ---
 

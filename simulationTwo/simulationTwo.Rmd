@@ -82,7 +82,7 @@ summary_rslt <- function(rslt, sample_size){
 
 
 
-```{r eval = F, echo = F}
+```{r sim, eval = F, echo = F}
 
 msm.formula <-  "regimen1*ftime*ftype"
 msm.family <- "binomial"
@@ -94,7 +94,7 @@ true_data <-suppressWarnings(truth_MSM_ci(n = 1e5, trttime = c(0,2), t0 = 4, J =
 fit <- glm(as.formula(paste0("ci ~ ",  msm.formula)), data = true_data, family = msm.family)
 truth <- fit$coefficients
 
-cl <- makeCluster(4, type = "SOCK")
+cl <- makeCluster(detectCores(), type = "SOCK")
 clusterEvalQ(cl, devtools::load_all("../survtmle"))
 clusterExport(cl, "makeData")
 

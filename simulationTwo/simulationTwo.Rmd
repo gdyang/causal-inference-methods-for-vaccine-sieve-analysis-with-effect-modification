@@ -7,6 +7,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(parallel)
 library(devtools)
+library(tidyverse)
 
 source("Functions/getTVCTruth.R")
 source("Functions/simulateTVCData.R")
@@ -52,14 +53,36 @@ do_one <- function(X, truth, msm.formula, n, t0){
 }
 
 
+summary_rslt <- function(rslt, sample_size){
+                  tb1 <- rslt[1:8,] %>% 
+                            t() %>% 
+                            as.data.frame() %>%
+                            pivot_longer(cols = everything(),
+                                         names_to = "coef", 
+                                         values_to = "bias") %>%
+                            group_by(coef) %>%
+                            summarise(MSE = mean(bias^2),
+                                      bias = mean(bias))
+                  
+                  tb2 <- rslt[9:16,] %>% 
+                            t() %>% 
+                            as.data.frame() %>%
+                            pivot_longer(cols = everything(),
+                                         names_to = "coef", 
+                                         values_to = "coverage") %>%
+                            group_by(coef) %>%
+                            summarise(coverage = mean(coverage))
+                  
+                  left_join(tb1, tb2, by = "coef") %>% 
+                    mutate(sample_size = sample_size)  
+}
+
 
 ```
 
-## R Markdown
 
 
-
-```{r cars}
+```{r eval = F, echo = F}
 
 msm.formula <-  "regimen1*ftime*ftype"
 msm.family <- "binomial"
@@ -86,6 +109,8 @@ rslt_1000 <- parSapplyLB(cl = cl, X = seq_len(rep),
                          t0 = c(1:4),
                          truth = truth, 
                          msm.formula = msm.formula)
+saveRDS(rslt_1000, file = "size1000/re_n1000_tvc.rds")
+
 
 ### results with size 2000
 size = 2000
@@ -96,6 +121,7 @@ rslt_2000 <- parSapplyLB(cl = cl, X = seq_len(rep),
                          t0 = c(1:4),
                          truth = truth, 
                          msm.formula = msm.formula)
+saveRDS(rslt_2000, file = "size2000/re_n2000_tvc.rds")
 
 ### results with size 5000
 size = 5000
@@ -106,7 +132,26 @@ rslt_5000 <- parSapplyLB(cl = cl, X = seq_len(rep),
                          t0 = c(1:4),
                          truth = truth, 
                          msm.formula = msm.formula)
+saveRDS(rslt_5000, file = "size5000/re_n5000_tvc.rds")
 
 ```
+
+## Summary Table
+
+
+```{r}
+rslt_1000 <- readRDS("size1000/re_n1000_tvc.rds")
+rslt_2000 <- readRDS("size2000/re_n2000_tvc.rds")
+rslt_5000 <- readRDS("size5000/re_n5000_tvc.rds")
+
+
+summary_rslt(rslt_1000, 1000)
+
+summary_rslt(rslt_2000, 2000)
+
+summary_rslt(rslt_5000, 5000)
+
+```
+
 
 

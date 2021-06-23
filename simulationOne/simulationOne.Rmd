@@ -7,6 +7,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(parallel)
 library(devtools)
+library(tidyverse)
+
 
 source("Functions/getTruth.R")
 source("Functions/simulatedData.R")
@@ -38,14 +40,37 @@ do.one <- function(X, n, equal = T, truth, msm.formula = "trt*w2", msm.family){
 }
 
 
+summary_rslt <- function(rslt, sample_size){
+                  tb1 <- rslt[1:6,] %>% 
+                            t() %>% 
+                            as.data.frame() %>%
+                            pivot_longer(cols = everything(),
+                                         names_to = "coef", 
+                                         values_to = "bias") %>%
+                            group_by(coef) %>%
+                            summarise(MSE = mean(bias^2),
+                                      bias = mean(bias))
+                  
+                  tb2 <- rslt[7:12,] %>% 
+                            t() %>% 
+                            as.data.frame() %>%
+                            pivot_longer(cols = everything(),
+                                         names_to = "coef", 
+                                         values_to = "coverage") %>%
+                            group_by(coef) %>%
+                            summarise(coverage = mean(coverage))
+                  
+                  left_join(tb1, tb2, by = "coef") %>% 
+                    mutate(sample_size = sample_size)  
+}
+
 
 ```
 
-## R Markdown
 
 
 
-```{r sim}
+```{r eval = F, echo = F}
 
 msm.formula <-  "ftype*trt + trt*w1"
 msm.family <- "poisson"
@@ -91,4 +116,21 @@ rslt_5000 <- parSapplyLB(cl = cl, X = seq_len(rep),
 saveRDS(rslt_5000, file = "size5000/re_n5000.rds")
 ```
 
+## Summary Table
+
+
+```{r}
+rslt_1000 <- readRDS("size1000/re_n1000.rds")
+rslt_2000 <- readRDS("size2000/re_n2000.rds")
+rslt_5000 <- readRDS("size5000/re_n5000.rds")
+
+
+summary_rslt(rslt_1000, 1000)
+
+summary_rslt(rslt_2000, 2000)
+
+summary_rslt(rslt_5000, 5000)
+
+
+```
 

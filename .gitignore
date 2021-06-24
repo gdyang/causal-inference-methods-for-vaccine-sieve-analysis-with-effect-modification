@@ -3,3 +3,6 @@ renv/
 .Rhistory
 simulationOne/simulationOne_cache
 simulationTwo/simulationTwo_cache
+simulationOne/*.html
+simulationTwo/*.html
+rtssAnalysis/*.html

@@ -58,7 +58,7 @@ do.one <- function(
 
 See `rtssAnalysis/rtssAnalysis.Rmd` for source code.
 
-```{r first-msm, include = FALSE}
+```{r first-msm, include = FALSE, cache = TRUE}
 cl <- makeCluster(detectCores(), type = "SOCK")
 clusterExport(cl, "do.one")
 clusterEvalQ(cl, devtools::load_all("../survtmle"))
@@ -82,16 +82,16 @@ knitr::kable(re)
 
 See `rtssAnalysis/rtssAnalysis.Rmd` for source code.
 
-```{r second-msm}
-cl <- makeCluster(detectCores(), type = "SOCK")
+```{r second-msm, include = FALSE, cache = TRUE}
+cl <- makeCluster(detectCores(), type = "SOCK") 
 clusterExport(cl, "do.one")
 clusterEvalQ(cl, devtools::load_all("../survtmle"))
 clusterEvalQ(cl, source("Functions/rtssFunctions.R"))
 
 rslt <- parLapplyLB(cl = cl, X = dataList,
-                    FUN = do.one,
+                    fun = do.one,
                     msm_formula = "trt*ftype*ageWeeks")
-est_re <- lapply(rslt, "[[", "est")
+est_re <- Reduce(rbind, lapply(rslt, "[[", "est"))
 est <- colMeans(est_re)
 var <- Reduce(`+`, lapply(rslt, "[[", "var")) / length(dataList)
 re <- cbind(est, getInference(est, var))

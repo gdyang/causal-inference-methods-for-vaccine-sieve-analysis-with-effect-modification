@@ -1,14 +1,14 @@
 ---
-title: "simulation one"
+title: "Simulation One"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
+renv::activate("..")
 knitr::opts_chunk$set(echo = TRUE)
-library(parallel)
+library(parallel); library(snow)
 library(devtools)
 library(tidyverse)
-
 
 source("Functions/getTruth.R")
 source("Functions/simulatedData.R")
@@ -64,28 +64,22 @@ summary_rslt <- function(rslt, sample_size){
                   left_join(tb1, tb2, by = "coef") %>% 
                     mutate(sample_size = sample_size)  
 }
-
-
-```
-
-
-
-
-```{r eval = F, echo = F}
-
-msm.formula <-  "ftype*trt + trt*w1"
-msm.family <- "poisson"
-truth <- suppressWarnings(getTruth(msm.formula = msm.formula, msm.family = poisson()))
-
-
 cl <- makeCluster(detectCores(), type = "SOCK")
 clusterExport(cl, "do.one")
 clusterExport(cl, "makeData")
 clusterExport(cl, "total_hazard")
 clusterEvalQ(cl, devtools::load_all("../survtmle"))
+```
 
+
+
+
+```{r run-the-simulation, cache = TRUE}
+
+msm.formula <-  "ftype*trt + trt*w1"
+msm.family <- "poisson"
+truth <- suppressWarnings(getTruth(msm.formula = msm.formula, msm.family = poisson()))
 rep = 1000
-
 ### results for size 1000
 size = 1000
 
@@ -120,7 +114,7 @@ saveRDS(rslt_5000, file = "size5000/re_n5000.rds")
 ## Summary Table
 
 
-```{r}
+```{r summarize-the-results}
 rslt_1000 <- readRDS("size1000/re_n1000.rds")
 rslt_2000 <- readRDS("size2000/re_n2000.rds")
 rslt_5000 <- readRDS("size5000/re_n5000.rds")

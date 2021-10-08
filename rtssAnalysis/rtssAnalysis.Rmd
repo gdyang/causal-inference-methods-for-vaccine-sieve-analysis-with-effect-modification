@@ -1,0 +1,102 @@
+---
+title: "RTSS analysis"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+renv::activate("..")
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(parallel); library(snow)
+library(devtools); library(SuperLearner)
+library(earth)
+
+source("Functions/rtssFunctions.R")
+load_all("../survtmle")
+dataList <- get(load("Data/fakeRTSS_markhamming_3D7.RData"))
+
+### ctime SL Library
+do.one <- function(
+  data,                   
+  msm_formula, 
+  SL.ftime.lib = list(c("SL.mean", "All"),
+                      c("SL.glm", "All"),
+                      c("SL.glm", "screen.Trt"),
+                      c("SL.glm", "screen.TrtSite"),
+                      c("SL.glm.interaction", "screen.TrtSite"),
+                      c("SL.gam3", "screen.corRank.top5"), #OK
+                      c("SL.gam3", "screen.corRank.top10"),
+                      c("SL.earth", "screen.corRank.top5"), #OK
+                      c("SL.earth", "screen.corRank.top10")),
+  SL.ctime.lib = list(c("SL.mean", "All"),
+                      c("SL.glm", "All"),
+                      c("SL.glm","screen.corRank.top5"),
+                      c("SL.glm", "screen.TrtSiteTime"),
+                      c("SL.glm.interaction", "screen.TrtSiteTime"))
+){
+	fit <- tryCatch({
+		mean_tmle(ftime = data$ftime,
+             ftype = data$ftype,
+             trt = data$vaccine,
+             t0 = 12, ## not sure if this is our goal
+             adjustVars = data[ , !(colnames(data) %in% c("ftime", "ftype", "vaccine"))],
+             glm.trt = 1,
+             SL.ftime = SL.ftime.lib,
+             SL.ctime = SL.ctime.lib,
+             msm.formula = msm_formula,
+             msm.family = "poisson",
+             verbose = FALSE,
+             returnModels = FALSE)
+	}, error = function(e){
+    	list(est = NA, var = NA)
+	})
+	out <- list(est = fit$est, var = fit$var)
+ 	return(out)
+}
+```
+
+# Poisson MSM to assess sieve effect
+
+See `rtssAnalysis/rtssAnalysis.Rmd` for source code.
+
+```{r first-msm, include = FALSE, cache = TRUE}
+cl <- makeCluster(detectCores(), type = "SOCK")
+clusterExport(cl, "do.one")
+clusterEvalQ(cl, devtools::load_all("../survtmle"))
+clusterEvalQ(cl, source("Functions/rtssFunctions.R"))
+clusterEvalQ(cl, library(SuperLearner))
+
+rslt <- parLapplyLB(cl = cl, X = dataList,
+                    fun = do.one,
+                    msm_formula = "trt*ftype")
+est_re <- Reduce(rbind, lapply(rslt, "[[", "est"))
+est <- colMeans(est_re)
+var <- Reduce(`+`, lapply(rslt, "[[", "var")) / length(dataList)
+re <- cbind(est, getInference(est, var))
+```
+
+```{r show-results-first-msm}
+knitr::kable(re)
+```
+
+# Poisson MSM to assess effect modification by age
+
+See `rtssAnalysis/rtssAnalysis.Rmd` for source code.
+
+```{r second-msm, include = FALSE, cache = TRUE}
+cl <- makeCluster(detectCores(), type = "SOCK") 
+clusterExport(cl, "do.one")
+clusterEvalQ(cl, devtools::load_all("../survtmle"))
+clusterEvalQ(cl, source("Functions/rtssFunctions.R"))
+
+rslt <- parLapplyLB(cl = cl, X = dataList,
+                    fun = do.one,
+                    msm_formula = "trt*ftype*ageWeeks")
+est_re <- Reduce(rbind, lapply(rslt, "[[", "est"))
+est <- colMeans(est_re)
+var <- Reduce(`+`, lapply(rslt, "[[", "var")) / length(dataList)
+re <- cbind(est, getInference(est, var))
+```
+
+```{r show-results-second-msm}
+knitr::kable(re)
+```

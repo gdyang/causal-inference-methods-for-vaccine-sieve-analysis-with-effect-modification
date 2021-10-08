@@ -1,1 +1,15 @@
 renv/
+.Rproj.user
+.Rhistory
+simulationOne/simulationOne_cache
+simulationTwo/simulationTwo_cache
+rtssAnalysis/rtssAnalysis_cache
+simulationOne/*.html
+simulationTwo/*.html
+simulationOne/size1000/*
+simulationOne/size2000/*
+simulationOne/size5000/*
+simulationTwo/size1000/*
+simulationTwo/size2000/*
+simulationTwo/size5000/*
+rtssAnalysis/*.html

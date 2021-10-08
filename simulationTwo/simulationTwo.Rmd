@@ -1,9 +1,10 @@
 ---
-title: "simulation two"
+title: "Simulation Two"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
+renv::activate("..")
 knitr::opts_chunk$set(echo = TRUE)
 library(parallel)
 library(devtools)
@@ -76,27 +77,30 @@ summary_rslt <- function(rslt, sample_size){
                   left_join(tb1, tb2, by = "coef") %>% 
                     mutate(sample_size = sample_size)  
 }
-
-
+cl <- makeCluster(detectCores(), type = "SOCK")
+clusterEvalQ(cl, devtools::load_all("../survtmle"))
+clusterExport(cl, "makeData")
 ```
 
-
-
-```{r sim, eval = F, echo = F}
+```{r run-the-simulation, cache = TRUE}
 
 msm.formula <-  "regimen1*ftime*ftype"
 msm.family <- "binomial"
 
-true_data <-suppressWarnings(truth_MSM_ci(n = 1e5, trttime = c(0,2), t0 = 4, J = 3, 
-               msm.formula = ".",  trtOfInterest = data.frame(ftime = c(0,2),
-                                                                    regimen1 = c(1,1),
-                                                                    regimen2 = c(0,0))))
-fit <- glm(as.formula(paste0("ci ~ ",  msm.formula)), data = true_data, family = msm.family)
+true_data <-suppressWarnings(
+  truth_MSM_ci(
+    n = 1e5, trttime = c(0,2), t0 = 4, J = 3, 
+    msm.formula = ".",  
+    trtOfInterest = data.frame(
+      ftime = c(0,2),
+      regimen1 = c(1,1),
+      regimen2 = c(0,0)
+    )
+  )
+)
+fit <- glm(as.formula(paste0("ci ~ ",  msm.formula)), 
+           data = true_data, family = msm.family)
 truth <- fit$coefficients
-
-cl <- makeCluster(detectCores(), type = "SOCK")
-clusterEvalQ(cl, devtools::load_all("../survtmle"))
-clusterExport(cl, "makeData")
 
 rep = 1000
 
@@ -139,7 +143,7 @@ saveRDS(rslt_5000, file = "size5000/re_n5000_tvc.rds")
 ## Summary Table
 
 
-```{r}
+```{r summarize-the-results}
 rslt_1000 <- readRDS("size1000/re_n1000_tvc.rds")
 rslt_2000 <- readRDS("size2000/re_n2000_tvc.rds")
 rslt_5000 <- readRDS("size5000/re_n5000_tvc.rds")

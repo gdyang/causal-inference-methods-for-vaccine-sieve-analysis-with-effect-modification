@@ -4,4 +4,7 @@ simulationOne:
 simulationTwo:
 	cd simulationTwo && Rscript -e "rmarkdown::render('simulationTwo.Rmd')"
 
-.PHONY: simulationOne simulationTwo
+rtssAnalysis:
+	cd rtssAnalysis && Rscript -e "rmarkdown::render('rtssAnalysis.Rmd')"	
+
+.PHONY: simulationOne simulationTwo rtssAnalysis

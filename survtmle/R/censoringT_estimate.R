@@ -56,8 +56,10 @@ estimateCensoringT <- function(dat, adjustVars,
               ctimeMod  <- SuperLearner::SuperLearner(Y = thisY, X = trt_var_past,
                                                    newX = trt_var_past,
                                                    SL.library = SL.ctime,
+                                                   cvControl = list(V = 5),
                                                    id = id_include, verbose = verbose,
-                                                   family = "binomial", method = "method.CC_nloglik", cvControl = list(V = 5))
+                                                   family = "binomial", method = "tmp_method.CC_nloglik",
+                                                   cvControl = list(V = 5))
             }else{
               trtMod <- SL.trt
               ctimeMod <- "No censoring observed"

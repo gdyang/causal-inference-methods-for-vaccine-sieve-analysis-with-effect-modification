@@ -1,3 +1,4 @@
+
 #' Fluctuation for the Method of Iterated Means
 #'
 #' This function performs a fluctuation of an initial estimate of the

@@ -18,7 +18,7 @@
 #'        or conditional mean) probabilities.
 #' @param dataList A list of long format \code{data.frame} objects. See
 #'        \code{?makeDataList} for more details on formatting.
-#' @param msm.formula A valid right-hand-side of a formula that can include 
+#' @param msm.formula A valid right-hand-side of a formula that can include
 #'        variables \code{trt} and \code{colnames(adjustVars)}
 #' @param msmWeightList A list of weights in same format as this list will be (
 #'        i.e., first entry corresponding to observed trt, latter to set values
@@ -36,21 +36,21 @@ makeWideDataList <- function(dat,
                              uniqtrt,
                              adjustVars,
                              dataList,
-                             msm.formula = NULL, 
-                             msmWeightList = NULL, 
+                             msm.formula = NULL,
+                             msmWeightList = NULL,
                              t0, ...) {
   wideDataList <- vector(mode = "list", length = length(dataList))
   # if(is.null(msm.formula)){
   #   ind.ftype <- FALSE
   # } else {
-  #   ind.ftype <- grepl("ftype", msm.formula) 
-  #   ind.ftime <- grepl("ftime", msm.formula) 
+  #   ind.ftype <- grepl("ftype", msm.formula)
+  #   ind.ftime <- grepl("ftime", msm.formula)
   # }
   s.list <- t0
   dlNames <- colnames(dataList[[1]])
   g_names <- dlNames[grepl("g_.*", dlNames)]
   # g_names <- g_names[-which(g_names == "g_obsz")]
-  
+
   dropVars <- c("trt", names(adjustVars),"ftime","ftype", g_names)
 
   wideDataList[[1]] <- data.frame(dat$trt, dat[, names(adjustVars)], g_obsz = dat$g_obsz,
@@ -60,24 +60,24 @@ makeWideDataList <- function(dat,
                                                  timevar = "t", idvar = "id"))
   colnames(wideDataList[[1]])[1] <- c("trt")
   colnames(wideDataList[[1]])[2:(1 + ncol(adjustVars))] <- names(adjustVars)
-  
-  
+
+
   # set Nj0=0 for all j -- makes things easier to run in a loop later
   eval(parse(text = paste0(paste0("wideDataList[[1]]$N", allJ, ".0",
                                  collapse = "<-"),
                           "<- wideDataList[[1]]$C.0 <- 0")))
-  
-  
- 
+
+
+
   wideDataList[2:length(dataList)] <- lapply(dataList[2:length(dataList)],
                                              function(x) {
-  
+
      out <- data.frame(dat[  names(adjustVars)],
                          stats::reshape(x[, !(names(x) %in% dropVars)],
                                         direction = "wide", timevar = "t", idvar = "id")
                          ,row.names = NULL)
-       
-    
+
+
      if(is.null(msm.formula)){
         out[, paste0("C.", 1:max(t0))] <- 0
       }
@@ -87,8 +87,8 @@ makeWideDataList <- function(dat,
                             "<- out$C.0 <- 0")))
     out
   })
-  
-  names(wideDataList) <- c("obs", uniqtrt)  
+
+  names(wideDataList) <- c("obs", uniqtrt)
 
 
   # if(!ind.ftype){
@@ -100,17 +100,17 @@ makeWideDataList <- function(dat,
   #   for(z in uniqtrt){
   #     for (j in allJ){
   #       wideDataList[[paste0("Z", z, "J", j)]]$trt <- z
-  #       wideDataList[[paste0("Z", z, "J", j)]]$g_obsz <- dat[[paste0("g_",z)]] 
+  #       wideDataList[[paste0("Z", z, "J", j)]]$g_obsz <- dat[[paste0("g_",z)]]
   #     }
   #   }
   # }
-  
+
   if(is.null(msm.formula)){
     wideDataList <- lapply(wideDataList, function(x){
       # make clever covariates
       for(z in uniqtrt) {
         for(t in 1:max(t0)) {
-          x[[paste0("H",z,".",t)]] <- 
+          x[[paste0("H",z,".",t)]] <-
             (x$trt==z & x[[paste0("C.",t-1)]]==0) / (x[[paste0("G_dC.",t)]]*x$g_obsz)
         }
           x[[paste0("H",z,".0")]] <- (x$trt==z) / x$g_obsz
@@ -124,7 +124,7 @@ makeWideDataList <- function(dat,
         temp.obs.fill$ftype <- c(allJ)
         temp.obs.fill$ftime <- 0
         temp.obs.fill$trt <- c(sort(unique(obs$trt)))
-        
+
         cfact <- wideDataList[[2]]
         temp.cfact.fill <- cfact[seq_len(length(allJ) * length(unique(obs$trt))),]
         temp.cfact.fill$ftype <-  c(allJ)
@@ -140,36 +140,40 @@ makeWideDataList <- function(dat,
            wdl$ftime <- s
            wdl.temp$ftype <- j
            wdl.temp$ftime <- s
-           if(sum(colnames(wdl.temp) != colnames(temp.obs.fill)) == 0){temp.fill <-temp.obs.fill} else{temp.fill <-temp.cfact.fill}
+           if(sum(colnames(wdl.temp) != colnames(temp.obs.fill)) == 0){
+             temp.fill <- temp.obs.fill
+             } else{
+               temp.fill <- temp.cfact.fill
+              }
            wdl.new <- rbind(temp.fill, wdl.temp)
            msmModelMatrix <- model.matrix(as.formula(paste0("N1.0 ~ ",msm.formula)), data = wdl.new)[-seq_len(nrow(temp.fill)),]
            msm.p <- dim(msmModelMatrix)[2]
           for(t in 1:s){
             for(p in 1:msm.p){
-            wdl[[paste0("H", j, ".", p,".",t, ".", s, ".obs")]] <- 
+            wdl[[paste0("H", j, ".", p,".",t, ".", s, ".obs")]] <-
               as.numeric(msmModelMatrix[,p] * mw * as.numeric(wdl[,paste0("C.",t-1)]==0) / (wdl[[paste0("G_dC.",t)]] * wdl$g_obsz))
-            wdl[[paste0("H", j, ".", p,".",t, ".", s,  ".pred")]] <- 
+            wdl[[paste0("H", j, ".", p,".",t, ".", s,  ".pred")]] <-
               as.numeric(msmModelMatrix[,p] * mw / (wdl[[paste0("G_dC.",t)]] * wdl$g_obsz))
-            
+
             }
           }
            for(p in 1:msm.p){
              j <- (wdl$ftype)[1]
              wdl[[paste0("H", j, ".", p,".",0, ".", s, ".obs")]] <- as.numeric(msmModelMatrix[,p] * mw / wdl$g_obsz)
              wdl[[paste0("H", j, ".", p,".",0, ".", s, ".pred")]] <- as.numeric(msmModelMatrix[,p] * mw / wdl$g_obsz)
-           } 
-           
+           }
+
          }
-        
+
           wdl <- wdl[,-which(colnames(wdl) == "ftype")]
       }
           wdl[,-which(colnames(wdl)=="ftime")]
         }, SIMPLIFY = FALSE)
-      
-    
+
+
       }
-    
-  
+
+
 
   return(wideDataList)
 }

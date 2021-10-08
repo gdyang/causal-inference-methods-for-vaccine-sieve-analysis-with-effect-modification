@@ -43,14 +43,19 @@ for (t.ind in trtofTime){
 
     trt_var_past <- merge(trt_past, var_past, by = "id")[,-1]
 
+    trt_data_in <- as.data.frame(cbind(trt_var_past, thisY))
+
     # fit Super Learner
     #  NEED TO FIX SUPER LEARNER PART
     if(!is.null(SL.trt)) {
       if(class(SL.trt) != "SuperLearner") {
-        trtMod <- SuperLearner::SuperLearner(Y = thisY, X = trt_var_past,
+        cvControl <- SuperLearner::SuperLearner.CV.control(V = 5)
+        trtMod <- SuperLearner::SuperLearner(Y = thisY[id_include], X = trt_var_past[id_include,],
                                              newX = trt_var_past,
                                              SL.library = SL.trt,
-                                             id = id_include, verbose = verbose,
+                                             cvControl = cvControl,
+                                             #id = id_include,
+                                             verbose = verbose,
                                              family = "binomial")
       } else {
         trtMod <- SL.trt
@@ -78,7 +83,7 @@ for (t.ind in trtofTime){
         }
 
         #trt_form <- paste("thisY", "~", glm.trt, sep = " ")
-        trt_data_in <- as.data.frame(cbind(trt_var_past, thisY))
+        #trt_data_in <- as.data.frame(cbind(trt_var_past, thisY))
 
         trtMod <- fast_glm(reg_form = stats::as.formula(trt_form),
                            data = trt_data_in,
@@ -97,11 +102,15 @@ for (t.ind in trtofTime){
         }
       }
 
-
+      if(("glm" %in% class(glm.trt)) & !("speedglm" %in% class(glm.trt))){
       suppressWarnings(
         pred <- predict(trtMod, newdata = trt_data_pred, type = "response")
       )
-
+      } else {
+        suppressWarnings(
+          pred <- predict(trtMod, newdata = trt_data_pred, type = "response", onlySL = T)
+        )
+      }
       if(t.ind == 0){
         prev_g <- 1
       }else{

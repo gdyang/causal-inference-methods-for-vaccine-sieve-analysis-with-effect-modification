@@ -147,18 +147,18 @@ estimateIteratedMean <- function(wideDataList, t, whichJ, allJ, t0, adjustVars,
       if(t == t0) {
         # if there are less than 2 events at t0, just fit regression using only Z
         nE <- sum(wideDataList[[1]][include, outcomeName])
-        ignoreSL <- nE <= 2
+        ignoreSL <-  nE <= 2
         if(ignoreSL) {
           suppressWarnings({
             Qform_trt <- paste(outcomeName, "~", "trt", sep = " ")
             Qmod <- fast_glm(reg_form = stats::as.formula(Qform_trt),
                              data = wideDataList[[1]][include, ],
-                             family = stats::gaussian())
+                             family = stats::binomial())
             wideDataList <- lapply(wideDataList, function(x, whichJ, t) {
               suppressWarnings(
               x[[Qj.t]] <- x[[Nj.tm1]] + (1-x[[NnotJ.tm1]]- x[[Nj.tm1]]) *
-                predict(Qmod,newdata=data.frame(trt=x$trt))
-             )
+                predict(Qmod,newdata=data.frame(trt=x$trt), type = "response")
+               )
              x
             }, t = t, whichJ = whichJ)
           })

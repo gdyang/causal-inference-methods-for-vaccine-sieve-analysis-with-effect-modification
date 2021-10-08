@@ -257,11 +257,11 @@ estimateIteratedMeanT <- function(wideDataList, t, whichJ, allJ, t0, adjustVars,
             Qmod <- fast_glm(reg_form = stats::as.formula(Qform_trt),
                              data = cbind(wideDataList[[1]][include, outcomeName, drop =F],
                                           trt_var_past[include, ]),
-                             family = stats::gaussian())
+                             family = stats::binomial())
             wideDataList <- lapply(wideDataList, function(x, whichJ, t, Qj.t, Nj.tm1, NnotJ.tm1) {
               suppressWarnings(
                 x[[Qj.t]] <- x[[Nj.tm1]] + (1-x[[NnotJ.tm1]]- x[[Nj.tm1]]) *
-                  predict(Qmod,newdata=trt_var_past)
+                  predict(Qmod,newdata=trt_var_past, type = 'response')
               )
 
 
@@ -294,7 +294,8 @@ estimateIteratedMeanT <- function(wideDataList, t, whichJ, allJ, t0, adjustVars,
             Qmod <- SuperLearner::SuperLearner(Y = wideDataList[[1]][include,outcomeName],
                                                X = trt_var_past[include, ],
                                                SL.library = SL.ftime,
-                                               cvControl = list(V = 5), method = "method.CC_nloglik",
+                                               cvControl = list(V = 5),
+                                               method = "tmp_method.CC_nloglik",
 
                                                family = "binomial",
                                                verbose = verbose)
@@ -311,7 +312,7 @@ estimateIteratedMeanT <- function(wideDataList, t, whichJ, allJ, t0, adjustVars,
                                              X = cbind(trt_var_past[include, ]),
                                              SL.library = SL.ftime,
                                              cvControl = list(V = 5),
-					     method = "method.CC_LS",
+					     method = "tmp_method.CC_nloglik",
                                              family = "binomial",
                                              verbose = verbose)
         )

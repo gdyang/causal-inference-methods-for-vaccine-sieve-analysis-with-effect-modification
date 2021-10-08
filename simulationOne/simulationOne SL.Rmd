@@ -15,17 +15,66 @@ source("Functions/simulatedData.R")
 
 load_all("../survtmle")
 
+SL.glm.correct.ftime <- function (Y, X, newX, family, obsWeights, ...) 
+{
+  if (is.matrix(X)) {
+    X = as.data.frame(X)
+  }
+  fit.glm <- glm(Y ~ trt*factor(w2)*w1, data = X, family = family, weights = obsWeights)
+  if (is.matrix(newX)) {
+    newX = as.data.frame(newX)
+  }
+  pred <- predict(fit.glm, newdata = newX, type = "response")
+  fit <- list(object = fit.glm)
+  class(fit) <- "SL.glm"
+  out <- list(pred = pred, fit = fit)
+  return(out)
+}
+
+SL.glm.correct.ctime <- function (Y, X, newX, family, obsWeights, ...) 
+{
+  if (is.matrix(X)) {
+    X = as.data.frame(X)
+  }
+  fit.glm <- glm(Y ~ factor(w2)*t, data = X, family = family, weights = obsWeights)
+  if (is.matrix(newX)) {
+    newX = as.data.frame(newX)
+  }
+  pred <- predict(fit.glm, newdata = newX, type = "response")
+  fit <- list(object = fit.glm)
+  class(fit) <- "SL.glm"
+  out <- list(pred = pred, fit = fit)
+  return(out)
+}
+
+
+
 do.one <- function(X, n, equal = T, truth, msm.formula = "trt*w2", msm.family){
   set.seed(X)
 	dat <- makeData(n = n, equal = equal)
-	fit <- tryCatch({suppressWarnings(mean_tmle(ftime = dat$ftime, ftype = dat$ftype,
+	
+	
+	SL.ftime.lib <- list(c("SL.glm.interaction", "All"),
+	                     c("SL.glm.correct.ftime", "All"))
+	
+	### ctime SL Library
+	SL.ctime.lib <- list(c("SL.glm.interaction", "All"),
+	                     c("SL.earth", "All"),
+	                     c("SL.glm.correct.ctime", "All"))
+	
+	fit <- tryCatch({suppressWarnings(
+	  
+	  mean_tmle(ftime = dat$ftime, ftype = dat$ftype,
 	                           trt = dat$trt, adjustVars = dat$adjustVars,
-	                           glm.trt = "1", t0 = 6,
-	                           glm.ftime = "trt*factor(w2)*w1",
-	                           glm.ctime = "factor(w2)*t",
+	                           glm.trt = "1", t0 = 6,	
+	                           SL.ftime = SL.ftime.lib,
+	                           SL.ctime = SL.ctime.lib,
 	                           msm.formula = msm.formula,
-	                           msm.family = msm.family))
+	                           msm.family = msm.family)
+	                           
+	                           )
 		}, error = function(e){ rep(NA, 2*length(truth)) })
+
 	if(class(fit) == "survtmle"){
 		est <- fit$est
 		se <- sqrt(diag(fit$var))
@@ -33,7 +82,7 @@ do.one <- function(X, n, equal = T, truth, msm.formula = "trt*w2", msm.family){
 		ciu <- est + 1.96 * se
 		coverage <- truth < ciu & truth > cil
 		bias <- est - truth
-		return(c(bias,coverage))
+		return(c(bias, se, coverage))
 	}else{
 		return(fit)
 	}
@@ -41,6 +90,9 @@ do.one <- function(X, n, equal = T, truth, msm.formula = "trt*w2", msm.family){
 
 
 summary_rslt <- function(rslt, sample_size){
+                  emp_se <-  colMeans(t(rslt[7:12,]))
+                  names(emp_se) <- rownames(rslt[1:6,])
+                  emp_se <- emp_se[order(names(emp_se))]
                   tb1 <- rslt[1:6,] %>% 
                             t() %>% 
                             as.data.frame() %>%
@@ -49,10 +101,13 @@ summary_rslt <- function(rslt, sample_size){
                                          values_to = "bias") %>%
                             group_by(coef) %>%
                             summarise(MSE = mean(bias^2),
-                                      E_SE = mean(SE),
-                                      bias = mean(bias))
+                                      ave_se = sqrt(var(bias)),
+                                      bias = mean(bias)) %>% 
+                            mutate(#emp_se = emp_se,
+                                   se_ratio = ave_se/emp_se) %>%
+                            select(-ave_se)
                   
-                  tb2 <- rslt[7:12,] %>% 
+                  tb2 <- rslt[13:18,] %>% 
                             t() %>% 
                             as.data.frame() %>%
                             pivot_longer(cols = everything(),
@@ -121,9 +176,9 @@ saveRDS(rslt_5000, file = "size5000/re_n5000.rds")
 
 
 ```{r}
-rslt_1000 <- readRDS("size1000/re_n1000.rds")
-rslt_2000 <- readRDS("size2000/re_n2000.rds")
-rslt_5000 <- readRDS("size5000/re_n5000.rds")
+rslt_1000 <- readRDS("size1000/re_n1000_SL.rds")
+rslt_2000 <- readRDS("size2000/re_n2000_SL.rds")
+rslt_5000 <- readRDS("size5000/re_n5000_SL.rds")
 
 
 summary_rslt(rslt_1000, 1000)

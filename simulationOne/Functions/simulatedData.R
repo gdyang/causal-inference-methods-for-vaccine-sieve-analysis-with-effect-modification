@@ -1,5 +1,5 @@
 total_hazard <- function(w1, w2, trt){
-  plogis(-2 + 0.4*((w2 == 0) + (w2 == 1) + (w2 == 2)) - 0.2*(w2 == 3)- 0.5*w1*trt - 0.5*trt)
+  plogis(-1.5 + 0.4*((w2 == 0) + (w2 == 1) + (w2 == 2)) - 0.2*(w2 == 3)- 0.2*w1*trt - 1*trt)
 }
 
 
